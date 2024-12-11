@@ -1,0 +1,19 @@
+kestra:
+  repository:
+    type: memory
+  queue:
+    type: memory
+  storage:
+    type: local
+    local:
+      base-path: "/tmp/kestra"
+  notification:
+    email:
+      from: "your-service@example.com"
+      smtp:
+        host: smtp.example.com
+        port: 587
+        username: your-username
+        password: your-password
+        auth: true
+        startTls: true

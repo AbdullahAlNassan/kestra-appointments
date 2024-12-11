@@ -1,0 +1,48 @@
+id: appointment_email_workflow
+namespace: appointments
+
+triggers:
+  - id: api
+    type: io.kestra.core.models.triggers.types.Webhook
+    
+tasks:
+  - id: generate_ics
+    type: io.kestra.core.tasks.scripts.Python
+    script: |
+      from icalendar import Calendar, Event
+      from datetime import datetime
+      
+      # Create calendar event
+      cal = Calendar()
+      event = Event()
+      
+      event.add('summary', inputs['title'])
+      event.add('description', inputs['description'])
+      start_time = datetime.fromisoformat(f"{inputs['date']}T{inputs['time']}")
+      event.add('dtstart', start_time)
+      event.add('duration', f"PT{inputs['duration']}M")
+      
+      cal.add_component(event)
+      
+      # Save ICS file
+      with open('appointment.ics', 'wb') as f:
+          f.write(cal.to_ical())
+      
+      outputs['ics_path'] = 'appointment.ics'
+
+  - id: send_email
+    type: io.kestra.plugin.notifications.email.Email
+    from: "{{> kestraEmailFrom }}"
+    to: "{{ inputs.email }}"
+    subject: "New Appointment: {{ inputs.title }}"
+    content: |
+      Your appointment has been scheduled:
+      
+      Title: {{ inputs.title }}
+      Date: {{ inputs.date }}
+      Time: {{ inputs.time }}
+      Duration: {{ inputs.duration }} minutes
+      
+      The calendar invitation is attached to this email.
+    attachments:
+      - "{{ outputs.generate_ics.ics_path }}"
